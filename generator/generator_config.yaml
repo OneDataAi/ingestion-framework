@@ -1,0 +1,31 @@
+# generator_config.yaml — Single configuration file for generate_bundles.py
+# All paths are absolute workspace paths.
+
+# ---------------------------------------------------------------------------
+# Unity Catalog source for configuration tables
+# Tables read: <catalog>.<schema>.bundle_domains
+#              <catalog>.<schema>.jobs
+#              <catalog>.<schema>.pipelines
+#              <catalog>.<schema>.tables
+# ---------------------------------------------------------------------------
+catalog: ariel_test
+schema: config
+
+# ---------------------------------------------------------------------------
+# Output paths
+# ---------------------------------------------------------------------------
+
+# Each domain's self-contained databricks.yml is written to:
+#   <bundle_output_root>/<domain_name>/databricks.yml
+bundle_output_root: /Workspace/Shared/.bundle
+
+
+# Where SQL transformation files for ETL pipelines live
+sql_source_dir: /Workspace/Shared/transformations/bronze_qualified
+
+# ---------------------------------------------------------------------------
+# Optional: restrict to a single domain name.
+# Omit or set to null to build all domains from the bundle_domains table.
+# ---------------------------------------------------------------------------
+# domain: oncology
+
