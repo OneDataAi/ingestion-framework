@@ -4,11 +4,11 @@ A single config-driven generator that reads from Unity Catalog and produces one 
 
 ## Generator
 
-**`generator/generate_bundles.py`** — reads four configuration tables from Unity Catalog (`ariel_test.config`) and writes a self-contained `databricks.yml` per domain to `/Workspace/Shared/.bundle/<domain>/databricks.yml`. No deployment is performed — bundles are generated only. No `targets:` block is included; add one manually or via CLI flags if deployment is needed.
+**`generator/generate_bundles.py`** — reads four configuration tables from Unity Catalog (`ariel_test.config`) and writes a self-contained `databricks.yml` per domain to `bundles/<domain>/databricks.yml` (inside the Git repo). Deployment is performed from the `run_generator` notebook using the Databricks CLI (`bundle deploy --target dev`). A `targets:` block is included, configured in `generator_config.yaml`.
 
 All settings live in **`generator/generator_config.yaml`**:
 - `catalog` / `schema` — Unity Catalog location of the four config tables (default: `ariel_test.config`)
-- `bundle_output_root` — where per-domain bundle directories are written (default: `/Workspace/Shared/.bundle`)
+- `bundle_output_root` — where per-domain bundle directories are written (default: `/Workspace/Repos/ingestion-framework/ingestion-framework/bundles`)
 - `sql_source_dir` — where ETL SQL transformation files live (default: `/Workspace/Shared/transformations/bronze_qualified`)
 - `domain` — optional; restrict generation to a single domain name
 
@@ -29,7 +29,7 @@ Strictly `source → bronze_raw (ingest pipeline) → bronze_qualified (etl pipe
 
 - Generator: `/Repos/ingestion-framework/ingestion-framework/generator/`
 - Config file: `generator/generator_config.yaml`
-- Generated bundles: `/Workspace/Shared/.bundle/<domain>/databricks.yml`
+- Generated bundles: `/Repos/ingestion-framework/ingestion-framework/bundles/<domain>/databricks.yml`
 - SQL transformations: `/Workspace/Shared/transformations/bronze_qualified/`
 
 ## Current data domain

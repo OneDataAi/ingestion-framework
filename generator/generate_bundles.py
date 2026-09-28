@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
@@ -42,6 +43,7 @@ def render_databricks_yml(
     bundle_root_dir: Path,
     catalog: str,
     schema: str,
+    targets: dict | None = None,
 ) -> None:
     """Write the domain's self-contained databricks.yml into bundle_root_dir."""
     header = DATABRICKS_YML_HEADER_TEMPLATE.format(
@@ -51,6 +53,8 @@ def render_databricks_yml(
         "bundle": {"name": bundle_name},
         "resources": {"jobs": job_entries, "pipelines": pipeline_entries},
     }
+    if targets:
+        bundle["targets"] = targets
     bundle_root_dir.mkdir(parents=True, exist_ok=True)
     (bundle_root_dir / "databricks.yml").write_text(header + dump_yaml(bundle), encoding="utf-8")
 
@@ -108,15 +112,21 @@ def etl_pipeline_entry(pipeline: dict, sql_path: str) -> dict:
 def render_etl_pipeline(
     pipeline: dict, sql_source_dir: Path, bundle_root_dir: Path
 ) -> dict:
-    """Validate the SQL source file exists and return the pipeline entry for
-    the aggregated databricks.yml, with sql_path relative to bundle_root_dir."""
+    """Copy the SQL source file into the bundle directory so it's inside the
+    sync root, then return the pipeline entry with a relative path."""
     sql_src = sql_source_dir / pipeline["sql_path"]
     if not sql_src.exists():
         raise FileNotFoundError(
             f"pipeline '{pipeline['pipeline_name']}': sql_path '{pipeline['sql_path']}' "
             f"not found in {sql_source_dir}"
         )
-    return etl_pipeline_entry(pipeline, relative_posix_path(bundle_root_dir, sql_src))
+    # Copy SQL into the bundle so it's within the sync root
+    dest_dir = bundle_root_dir / "transformations" / "bronze_qualified"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_file = dest_dir / pipeline["sql_path"]
+    shutil.copy2(sql_src, dest_file)
+
+    return etl_pipeline_entry(pipeline, relative_posix_path(bundle_root_dir, dest_file))
 
 
 def render_job(job: dict, job_pipelines: list[dict]) -> dict:
@@ -144,16 +154,16 @@ def render_job(job: dict, job_pipelines: list[dict]) -> dict:
     return entry
 
 
-def generate(config: dict | None = None) -> None:
+def generate(config: dict | None = None) -> list[Path]:
     """Read configuration tables from Unity Catalog, validate, and write
     a self-contained databricks.yml per domain into the bundle output root.
-    No deployment is performed — the generated bundles are ready to be
-    deployed manually with `databricks bundle deploy`."""
+    Returns the list of generated bundle root directories."""
     if config is None:
         config = load_config()
 
     catalog = config["catalog"]
     schema = config["schema"]
+    targets = config.get("targets")  # None if not specified
     bundle_output_root = Path(config["bundle_output_root"])
     sql_source_dir = Path(config["sql_source_dir"])
     domain_override = config.get("domain")  # None or a string
@@ -289,6 +299,8 @@ def generate(config: dict | None = None) -> None:
             )
 
     # --- Generate per-domain bundles --------------------------------------
+    generated_bundle_dirs: list[Path] = []
+
     for domain in domains_to_build:
         domain_name = domain["domain_name"]
         bundle_name = bundle_name_by_domain[domain_name]
@@ -328,7 +340,7 @@ def generate(config: dict | None = None) -> None:
 
         render_databricks_yml(
             domain_name, bundle_name, job_entries, pipeline_entries,
-            domain_bundle_root_dir, catalog, schema,
+            domain_bundle_root_dir, catalog, schema, targets,
         )
 
         print(f"Domain '{domain_name}' ({bundle_name}): generated {len(domain_jobs)} job(s), "
@@ -349,6 +361,10 @@ def generate(config: dict | None = None) -> None:
                     pipeline = domain_etl_pipelines[pipeline_name]
                     print(f"      etl pipeline {pipeline_name}{dep_note}: "
                           f"runs {pipeline['sql_path']} -> {pipeline['target_catalog']}.{pipeline['bronze_qualified_schema']}")
+
+        generated_bundle_dirs.append(domain_bundle_root_dir)
+
+    return generated_bundle_dirs
 
 
 def main() -> None:

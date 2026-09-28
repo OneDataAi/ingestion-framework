@@ -17,7 +17,7 @@ schema: config
 
 # Each domain's self-contained databricks.yml is written to:
 #   <bundle_output_root>/<domain_name>/databricks.yml
-bundle_output_root: /Workspace/Shared/.bundle
+bundle_output_root: /Workspace/Repos/ingestion-framework/ingestion-framework/bundles
 
 
 # Where SQL transformation files for ETL pipelines live
@@ -28,4 +28,14 @@ sql_source_dir: /Workspace/Shared/transformations/bronze_qualified
 # Omit or set to null to build all domains from the bundle_domains table.
 # ---------------------------------------------------------------------------
 # domain: oncology
+
+# ---------------------------------------------------------------------------
+# Targets block — written into every generated databricks.yml.
+# ---------------------------------------------------------------------------
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-7405616690972104.4.azuredatabricks.net/?o=7405616690972104
 
