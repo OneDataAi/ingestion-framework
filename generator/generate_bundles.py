@@ -80,11 +80,27 @@ def table_object_entry(table: dict) -> dict:
     }
 
 
+def _cluster_block(pipeline: dict) -> dict:
+    """Return a clusters config when serverless is false and compute is set.
+
+    `compute` holds a node_type_id (e.g. 'Standard_D4s_v3').  DLT pipelines
+    manage their own clusters, so we specify the node type + num_workers
+    rather than referencing an existing cluster.
+    """
+    if is_true(pipeline["serverless"]):
+        return {}
+    compute = (pipeline.get("compute") or "").strip()
+    if not compute:
+        return {}
+    num_workers = int(pipeline.get("num_workers") or 0)
+    return {"clusters": [{"label": "default", "node_type_id": compute, "num_workers": num_workers}]}
+
+
 def ingest_pipeline_entry(pipeline: dict, tables: list[dict]) -> dict:
     # Direct publishing mode (used by ingestion_definition pipelines) requires
     # a top-level `catalog`/`schema` even though every object below also
     # self-qualifies its own destination_catalog/destination_schema.
-    return {
+    entry = {
         "name": pipeline["pipeline_name"],
         "catalog": tables[0]["target_catalog"],
         "schema": tables[0]["bronze_raw_schema"],
@@ -95,10 +111,12 @@ def ingest_pipeline_entry(pipeline: dict, tables: list[dict]) -> dict:
             "objects": [table_object_entry(table) for table in tables],
         },
     }
+    entry.update(_cluster_block(pipeline))
+    return entry
 
 
 def etl_pipeline_entry(pipeline: dict, sql_path: str) -> dict:
-    return {
+    entry = {
         "name": pipeline["pipeline_name"],
         "catalog": pipeline["target_catalog"],
         "schema": pipeline["bronze_qualified_schema"],
@@ -107,6 +125,8 @@ def etl_pipeline_entry(pipeline: dict, sql_path: str) -> dict:
         "photon": True,
         "libraries": [{"file": {"path": sql_path}}],
     }
+    entry.update(_cluster_block(pipeline))
+    return entry
 
 
 def render_etl_pipeline(
@@ -201,6 +221,11 @@ def generate(config: dict | None = None) -> list[Path]:
             raise ValueError(
                 f"pipelines: pipeline '{pipeline['pipeline_name']}' has invalid type "
                 f"'{pipeline['type']}' (must be 'ingest' or 'etl')"
+            )
+        if not is_true(pipeline["serverless"]) and not (pipeline.get("compute") or "").strip():
+            raise ValueError(
+                f"pipelines: pipeline '{pipeline['pipeline_name']}' has serverless=false "
+                f"but no compute cluster ID specified"
             )
 
     require_fk(

@@ -32,7 +32,7 @@ resources:
       catalog: ariel_test
       schema: dev_ariel_y_bronze_raw
       channel: PREVIEW
-      serverless: true
+      serverless: false
       ingestion_definition:
         ingest_from_uc_foreign_catalog: true
         objects:
@@ -62,26 +62,38 @@ resources:
               query_based_connector_config:
                 cursor_columns:
                 - updated_at
+      clusters:
+      - label: default
+        node_type_id: 0806-070937-2x1z7ueq
+        num_workers: 0
     onc_appointments_etl:
       name: onc_appointments_etl
       catalog: ariel_test
       schema: bronze_qualified
       channel: CURRENT
-      serverless: true
+      serverless: false
       photon: true
       libraries:
       - file:
           path: transformations/bronze_qualified/onc_appointments.sql
+      clusters:
+      - label: default
+        node_type_id: 0806-070937-2x1z7ueq
+        num_workers: 0
     onc_patients_etl:
       name: onc_patients_etl
       catalog: ariel_test
       schema: bronze_qualified
       channel: CURRENT
-      serverless: true
+      serverless: false
       photon: true
       libraries:
       - file:
           path: transformations/bronze_qualified/onc_patients.sql
+      clusters:
+      - label: default
+        node_type_id: 0806-070937-2x1z7ueq
+        num_workers: 0
 targets:
   dev:
     mode: development

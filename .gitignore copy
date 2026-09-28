@@ -1,6 +1,0 @@
-build/
-bundles/
-/databricks.yml
-__pycache__/
-*.pyc
-.venv/

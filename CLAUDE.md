@@ -21,7 +21,7 @@ Strictly `source → bronze_raw (ingest pipeline) → bronze_qualified (etl pipe
 ## Configuration tables (`ariel_test.config`)
 
 - **`bundle_domains`** — one row per domain; each domain produces a separately deployable bundle (`bundle_name`).
-- **`pipelines`** — one row per pipeline: `domain_name` FK says which bundle it belongs to; `type` is `ingest` (Managed Ingestion) or `etl` (Lakeflow Declarative Pipeline running one SQL file from `sql_source_dir`); `job_name` FK says which job schedules it; `depends_on` (`;`-separated pipeline names) is the task dependency DAG — a dependency must share the same `job_name`.
+- **`pipelines`** — one row per pipeline: `domain_name` FK says which bundle it belongs to; `type` is `ingest` (Managed Ingestion) or `etl` (Lakeflow Declarative Pipeline running one SQL file from `sql_source_dir`); `job_name` FK says which job schedules it; `depends_on` (`;`-separated pipeline names) is the task dependency DAG — a dependency must share the same `job_name`; `serverless` (boolean) controls compute mode; `compute` (string, cluster ID) is required when `serverless=false` — the generator emits a `clusters` block with `existing_cluster_id`.
 - **`tables`** — source tables an `ingest` pipeline pulls in (domain inherited from the pipeline).
 - **`jobs`** — job-level scheduling (cron, timezone, status) plus `domain_name` FK.
 
