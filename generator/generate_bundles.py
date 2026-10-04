@@ -159,28 +159,24 @@ def table_object_entry(table: dict, variable_names: set[str] | None = None) -> d
     return {"table": table_spec}
 
 
-def _resolve_node_type(cluster_id: str) -> str:
-    """Look up the node_type_id of an existing cluster by its cluster ID."""
-    from databricks.sdk import WorkspaceClient
-    w = WorkspaceClient()
-    cluster = w.clusters.get(cluster_id)
-    return cluster.node_type_id
+def _cluster_block(pipeline: dict, variable_names: set[str] | None = None) -> dict:
+    """Return a clusters config when serverless is false.
 
-
-def _cluster_block(pipeline: dict) -> dict:
-    """Return a clusters config when serverless is false and compute is set.
-
-    `compute` holds a classic cluster ID (e.g. '0806-070937-2x1z7ueq').
-    We resolve the cluster's node_type_id at generation time so the
-    pipeline creates a DLT-managed cluster with matching instance types.
+    Cluster variables (node_type_id, driver_node_type_id, num_workers) are
+    read from the variables table.  When ``node_type_id`` is not defined as
+    a variable the pipeline will have no explicit cluster block.
     """
     if is_true(pipeline["serverless"]):
         return {}
-    compute = (pipeline.get("compute") or "").strip()
-    if not compute:
+    vn = variable_names or set()
+    if "node_type_id" not in vn:
         return {}
-    node_type = _resolve_node_type(compute)
-    return {"clusters": [{"label": "default", "node_type_id": node_type, "driver_node_type_id": node_type, "num_workers": 1}]}
+    node_type = _resolve_value("", "node_type_id", vn)
+    driver_type = _resolve_value("", "driver_node_type_id", vn)
+    workers = _resolve_value("1", "num_workers", vn)
+    if not isinstance(workers, str) or not workers.startswith("${"):
+        workers = int(workers)
+    return {"clusters": [{"label": "default", "node_type_id": node_type, "driver_node_type_id": driver_type, "num_workers": workers}]}
 
 
 def ingest_pipeline_entry(pipeline: dict, tables: list[dict], variable_names: set[str] | None = None) -> dict:
@@ -199,7 +195,7 @@ def ingest_pipeline_entry(pipeline: dict, tables: list[dict], variable_names: se
             "objects": [table_object_entry(table, variable_names) for table in tables],
         },
     }
-    entry.update(_cluster_block(pipeline))
+    entry.update(_cluster_block(pipeline, variable_names))
     return entry
 
 
@@ -214,7 +210,7 @@ def etl_pipeline_entry(pipeline: dict, sql_path: str, variable_names: set[str] |
         "photon": True,
         "libraries": [{"file": {"path": sql_path}}],
     }
-    entry.update(_cluster_block(pipeline))
+    entry.update(_cluster_block(pipeline, variable_names))
     return entry
 
 
@@ -325,10 +321,10 @@ def generate(config: dict | None = None) -> list[Path]:
                 f"pipelines: pipeline '{pipeline['pipeline_name']}' has invalid type "
                 f"'{pipeline['type']}' (must be 'ingest' or 'etl')"
             )
-        if not is_true(pipeline["serverless"]) and not (pipeline.get("compute") or "").strip():
+        if not is_true(pipeline["serverless"]) and "node_type_id" not in variable_names:
             raise ValueError(
                 f"pipelines: pipeline '{pipeline['pipeline_name']}' has serverless=false "
-                f"but no compute cluster ID specified"
+                f"but no node_type_id variable specified in the variables table"
             )
 
     require_fk(

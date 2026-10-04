@@ -17,6 +17,15 @@ variables:
   source_catalog:
     description: Federated source catalog
     default: conn_azure_sql_demo_ingestion_catalog
+  driver_node_type_id:
+    description: VM type for pipeline cluster drivers
+    default: Standard_D4s_v3
+  num_workers:
+    description: Number of workers for pipeline clusters
+    default: '1'
+  node_type_id:
+    description: VM type for pipeline clusters
+    default: Standard_D4s_v3
 resources:
   jobs:
     oncology_hourly:
@@ -77,9 +86,9 @@ resources:
                 - updated_at
       clusters:
       - label: default
-        node_type_id: Standard_D4s_v3
-        driver_node_type_id: Standard_D4s_v3
-        num_workers: 1
+        node_type_id: ${var.node_type_id}
+        driver_node_type_id: ${var.driver_node_type_id}
+        num_workers: ${var.num_workers}
     onc_appointments_etl:
       name: onc_appointments_etl
       catalog: ${var.target_catalog}
@@ -92,9 +101,9 @@ resources:
           path: transformations/bronze_qualified/onc_appointments.sql
       clusters:
       - label: default
-        node_type_id: Standard_D4s_v3
-        driver_node_type_id: Standard_D4s_v3
-        num_workers: 1
+        node_type_id: ${var.node_type_id}
+        driver_node_type_id: ${var.driver_node_type_id}
+        num_workers: ${var.num_workers}
     onc_patients_etl:
       name: onc_patients_etl
       catalog: ${var.target_catalog}
@@ -107,9 +116,9 @@ resources:
           path: transformations/bronze_qualified/onc_patients.sql
       clusters:
       - label: default
-        node_type_id: Standard_D4s_v3
-        driver_node_type_id: Standard_D4s_v3
-        num_workers: 1
+        node_type_id: ${var.node_type_id}
+        driver_node_type_id: ${var.driver_node_type_id}
+        num_workers: ${var.num_workers}
 targets:
   dev:
     mode: development
@@ -121,6 +130,9 @@ targets:
       bronze_raw_schema: dev_ariel_y_bronze_raw
       bronze_qualified_schema: bronze_qualified
       source_catalog: conn_azure_sql_demo_ingestion_catalog
+      driver_node_type_id: Standard_D4s_v3
+      num_workers: '1'
+      node_type_id: Standard_D4s_v3
   prod:
     mode: production
     workspace:
@@ -132,3 +144,6 @@ targets:
       bronze_raw_schema: bronze_raw
       bronze_qualified_schema: bronze_qualified
       source_catalog: conn_azure_sql_demo_ingestion_catalog
+      driver_node_type_id: Standard_D4s_v3
+      num_workers: '1'
+      node_type_id: Standard_D4s_v3
