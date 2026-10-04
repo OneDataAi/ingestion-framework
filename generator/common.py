@@ -2,7 +2,7 @@
 Shared helpers for the bundle generator.
 
 Configuration lives in a Unity Catalog schema (default: ariel_test.config)
-with four tables: bundle_domains, jobs, pipelines, tables.
+with five tables: bundle_domains, jobs, pipelines, tables, variables.
 All generator settings (catalog, schema, paths) are read from
 generator/generator_config.yaml.
 """

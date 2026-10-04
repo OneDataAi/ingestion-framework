@@ -37,5 +37,12 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://adb-7405616690972104.4.azuredatabricks.net/?o=7405616690972104
+      host: https://adb-7405616690972104.4.azuredatabricks.net
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-7405616690972104.4.azuredatabricks.net
+    run_as:
+      service_principal_name: 32029e1e-478d-4692-9689-f41281fa7dfd
 

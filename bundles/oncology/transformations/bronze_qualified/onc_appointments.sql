@@ -1,3 +1,2 @@
--- AUTO-GENERATED placeholder — replace with actual ETL transformation SQL.
--- This file is referenced by the onc_appointments_etl pipeline.
-SELECT * FROM STREAM(LIVE.onc_appointments)
+CREATE STREAMING TABLE onc_appointments
+AS SELECT * FROM STREAM(ariel_test.dev_ariel_y_bronze_raw.onc_appointments)
